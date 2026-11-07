@@ -1135,6 +1135,15 @@
 			"savedFilterIgnored": "Dein gespeicherter Homepage-Filter wird während der Anzeige von Aufgaben per Label nicht angewendet."
 		},
 		"detail": {
+			"groups": {
+				"details": "Details",
+				"planning": "Planung"
+			},
+			"properties": {
+				"dueDate": "Fälligkeit",
+				"startDate": "Start",
+				"endDate": "Ende"
+			},
 			"chooseDueDate": "Klicke hier, um ein Fälligkeitsdatum zu setzen",
 			"chooseStartDate": "Klicke hier, um ein Startdatum zu setzen",
 			"chooseEndDate": "Klicke hier, um ein Enddatum zu setzen",

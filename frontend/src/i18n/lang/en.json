@@ -1193,6 +1193,10 @@
       "markAsDone": "Mark '{task}' as done",
       "scrollToBottom": "Scroll to bottom",
       "moreActions": "More actions",
+      "groups": {
+        "details": "Details",
+        "planning": "Planning"
+      },
       "properties": {
         "dueDate": "Due date",
         "startDate": "Start date",

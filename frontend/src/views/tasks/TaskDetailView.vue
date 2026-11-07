@@ -88,7 +88,7 @@
 			<div class="columns task-columns mbs-2">
 				<div class="column is-two-thirds detail-content">
 					<!-- Description -->
-					<div class="details content description">
+					<div class="details content description content-card">
 						<Description
 							:model-value="task"
 							:can-write="canWrite"
@@ -185,11 +185,13 @@
 					</div>
 
 					<!-- Comments -->
-					<Comments
-						:can-write="canWrite"
-						:task-id="taskId"
-						:project-id="task.project_id"
-					/>
+					<div class="content-card comments-card">
+						<Comments
+							:can-write="canWrite"
+							:task-id="taskId"
+							:project-id="task.project_id"
+						/>
+					</div>
 
 					<!-- Marker element for scroll-to-bottom button visibility -->
 					<div
@@ -199,314 +201,332 @@
 				</div>
 
 				<aside class="column is-one-third action-buttons task-sidebar">
-					<div
-						v-if="canWrite"
-						class="sidebar-toolbar d-print-none"
-					>
-						<XButton
-							v-shortcut="SHORTCUTS.taskDetail.done"
-							:class="{'is-pending': !task.done}"
-							class="button--mark-done"
-							icon="check-double"
-							variant="secondary"
-							@click="toggleTaskDone()"
+					<div class="sidebar-card">
+						<div
+							v-if="canWrite"
+							class="sidebar-toolbar d-print-none"
 						>
-							{{ task.done ? $t('task.detail.undone') : $t('task.detail.done') }}
-						</XButton>
-						<BaseButton
-							v-shortcut="SHORTCUTS.taskDetail.favorite"
-							v-tooltip="favoriteLabel"
-							class="toolbar-icon-button"
-							:class="{'is-favorite': task.is_favorite}"
-							:aria-label="favoriteLabel"
-							:aria-pressed="Boolean(task.is_favorite)"
-							@click="toggleFavorite"
-						>
-							<Icon :icon="task.is_favorite ? 'star' : ['far', 'star']" />
-						</BaseButton>
-						<Dropdown
-							class="task-actions-menu"
-							:trigger-label="$t('task.detail.moreActions')"
-						>
-							<template #trigger="{toggleOpen, open}">
-								<BaseButton
-									v-tooltip="$t('task.detail.moreActions')"
-									v-cy="'taskDetail.moreActions'"
-									class="toolbar-icon-button"
-									:aria-label="$t('task.detail.moreActions')"
-									:aria-expanded="open"
-									@click="toggleOpen"
-								>
-									<Icon icon="ellipsis-h" />
-								</BaseButton>
-							</template>
-							<template #default="{close}">
-								<div @click="close">
-									<TaskSubscription
-										entity="task"
-										type="dropdown"
-										:entity-id="task.id"
-										:model-value="task.subscription ?? null"
-										@toggle="toggleSubscription"
-									/>
-									<DropdownItem
-										icon="paperclip"
-										@click="openAttachments()"
-									>
-										{{ $t('task.detail.actions.attachments') }}
-									</DropdownItem>
-									<DropdownItem
-										icon="sitemap"
-										@click="setRelatedTasksActive()"
-									>
-										{{ $t('task.detail.actions.relatedTasks') }}
-									</DropdownItem>
-									<DropdownItem
-										v-if="timeTrackingEnabled"
-										v-cy="'taskTrackTimeAction'"
-										:icon="['far', 'clock']"
-										@click="setFieldActive('timeTracking')"
-									>
-										{{ $t('task.detail.actions.timeTracking') }}
-									</DropdownItem>
-									<DropdownItem
-										icon="list"
-										@click="setFieldActive('moveProject')"
-									>
-										{{ $t('task.detail.actions.moveProject') }}
-									</DropdownItem>
-									<DropdownItem
-										icon="copy"
-										@click="duplicateCurrentTask"
-									>
-										{{ $t('task.detail.actions.duplicate') }}
-									</DropdownItem>
-									<hr class="dropdown-divider">
-									<DropdownItem
-										icon="trash-alt"
-										icon-class="has-text-danger"
-										class="has-text-danger"
-										@click="deleteTask()"
-									>
-										{{ $t('task.detail.actions.delete') }}
-									</DropdownItem>
-								</div>
-							</template>
-						</Dropdown>
-					</div>
-
-					<dl
-						v-if="canWrite || hasAnyProperty"
-						class="property-list"
-					>
-						<TaskPropertyRow
-							name="assignees"
-							icon="users"
-							:label="$t('task.attributes.assignees')"
-							:is-set="isSet.assignees"
-							:can-write="canWrite"
-						>
-							<EditAssignees
-								v-if="canWrite"
-								:ref="e => setFieldRef('assignees', e)"
-								v-model="task.assignees"
-								:project-id="task.project_id"
-								:task-id="task.id"
-							/>
-							<AssigneeList
-								v-else
-								:assignees="task.assignees ?? []"
-							/>
-						</TaskPropertyRow>
-
-						<TaskPropertyRow
-							name="labels"
-							icon="tags"
-							:label="$t('task.attributes.labels')"
-							:is-set="isSet.labels"
-							:can-write="canWrite"
-						>
-							<EditLabels
-								:ref="e => setFieldRef('labels', e)"
-								v-model="task.labels"
-								:disabled="!canWrite"
-								:task-id="taskId"
-								:creatable="!authStore.isLinkShareAuth"
-								:creation-disabled-message="authStore.isLinkShareAuth ? $t('task.label.linkShareCannotCreate') : ''"
-							/>
-						</TaskPropertyRow>
-
-						<!-- On the row because FormSelect's fragment root leaves PrioritySelect without an $el. -->
-						<TaskPropertyRow
-							:ref="e => setFieldRef('priority', e)"
-							name="priority"
-							icon="exclamation-circle"
-							:label="$t('task.attributes.priority')"
-							:is-set="isSet.priority"
-							:can-write="canWrite"
-						>
-							<PrioritySelect
-								v-model="task.priority"
-								:disabled="!canWrite"
-								@update:modelValue="setPriority"
-							/>
-						</TaskPropertyRow>
-
-						<TaskPropertyRow
-							name="percent-done"
-							icon="percent"
-							:label="$t('task.attributes.percentDone')"
-							:is-set="isSet.percentDone"
-							:can-write="canWrite"
-						>
-							<PercentDoneSelect
-								v-model="task.percent_done"
-								:disabled="!canWrite"
-								@update:modelValue="setPercentDone"
-							/>
-						</TaskPropertyRow>
-
-						<TaskPropertyRow
-							name="due-date"
-							icon="calendar"
-							:label="$t('task.detail.properties.dueDate')"
-							:is-set="isSet.dueDate"
-							:can-write="canWrite"
-							:remove-label="$t('task.detail.removeDueDate')"
-							@remove="task.due_date = ''; saveTask()"
-						>
-							<Datepicker
-								ref="dueDatePicker"
-								v-model="dueDateInput"
-								aria-labelledby="task-property-due-date-label"
-								:choose-date-label="$t('task.detail.chooseDueDate')"
-								:empty-label="$t('misc.notSet')"
-								:title="$t('task.detail.properties.dueDate')"
-								:disabled="taskBusy || !canWrite"
-								@closeOnChange="saveTask()"
-							/>
-						</TaskPropertyRow>
-
-						<TaskPropertyRow
-							name="start-date"
-							icon="play"
-							:label="$t('task.detail.properties.startDate')"
-							:is-set="isSet.startDate"
-							:can-write="canWrite"
-							:remove-label="$t('task.detail.removeStartDate')"
-							@remove="task.start_date = ''; saveTask()"
-						>
-							<Datepicker
-								v-model="startDateInput"
-								aria-labelledby="task-property-start-date-label"
-								:choose-date-label="$t('task.detail.chooseStartDate')"
-								:empty-label="$t('misc.notSet')"
-								:title="$t('task.detail.properties.startDate')"
-								:disabled="taskBusy || !canWrite"
-								@closeOnChange="saveTask()"
-							/>
-						</TaskPropertyRow>
-
-						<TaskPropertyRow
-							name="end-date"
-							icon="stop"
-							:label="$t('task.detail.properties.endDate')"
-							:is-set="isSet.endDate"
-							:can-write="canWrite"
-							:remove-label="$t('task.detail.removeEndDate')"
-							@remove="task.end_date = ''; saveTask()"
-						>
-							<Datepicker
-								v-model="endDateInput"
-								aria-labelledby="task-property-end-date-label"
-								:choose-date-label="$t('task.detail.chooseEndDate')"
-								:empty-label="$t('misc.notSet')"
-								:title="$t('task.detail.properties.endDate')"
-								:disabled="taskBusy || !canWrite"
-								@closeOnChange="saveTask()"
-							/>
-						</TaskPropertyRow>
-
-						<TaskPropertyRow
-							name="reminders"
-							:icon="['far', 'clock']"
-							:label="$t('task.attributes.reminders')"
-							:is-set="isSet.reminders"
-							:can-write="canWrite"
-						>
-							<Reminders
-								:ref="e => setFieldRef('reminders', e)"
-								v-model="task.reminders"
-								:default-relative-to="remindersDefaultRelativeTo"
-								:disabled="!canWrite"
-								@update:modelValue="saveTask()"
-							/>
-						</TaskPropertyRow>
-
-						<TaskPropertyRow
-							name="repeat"
-							icon="history"
-							:label="$t('task.attributes.repeat')"
-							:is-set="isSet.repeatAfter"
-							:can-write="canWrite"
-							:remove-label="$t('task.detail.removeRepeat')"
-							:class="{'is-expanded': repeatEditorOpen}"
-							@remove="removeRepeatAfter"
-						>
-							<BaseButton
-								id="task-property-repeat-value"
-								aria-labelledby="task-property-repeat-label task-property-repeat-value"
-								class="property-value-button"
-								:class="{'property-empty': !isSet.repeatAfter}"
-								:disabled="!canWrite"
-								:aria-expanded="canWrite ? repeatEditorOpen : undefined"
-								@click="repeatEditorOpen = !repeatEditorOpen"
+							<XButton
+								v-shortcut="SHORTCUTS.taskDetail.done"
+								:class="{'is-pending': !task.done}"
+								class="button--mark-done"
+								icon="check-double"
+								variant="secondary"
+								@click="toggleTaskDone()"
 							>
-								{{ repeatSummary }}
-								<Icon
-									v-if="canWrite"
-									icon="chevron-down"
-									class="chevron"
-								/>
+								{{ task.done ? $t('task.detail.undone') : $t('task.detail.done') }}
+							</XButton>
+							<BaseButton
+								v-shortcut="SHORTCUTS.taskDetail.favorite"
+								v-tooltip="favoriteLabel"
+								class="toolbar-icon-button"
+								:class="{'is-favorite': task.is_favorite}"
+								:aria-label="favoriteLabel"
+								:aria-pressed="Boolean(task.is_favorite)"
+								@click="toggleFavorite"
+							>
+								<Icon :icon="task.is_favorite ? 'star' : ['far', 'star']" />
 							</BaseButton>
-							<template #editor>
-								<div
-									v-if="repeatEditorOpen && canWrite"
-									class="property-editor"
-								>
-									<RepeatAfter
-										:model-value="task"
-										@update:modelValue="saveTask($event)"
-									/>
-								</div>
-							</template>
-						</TaskPropertyRow>
+							<Dropdown
+								class="task-actions-menu"
+								:trigger-label="$t('task.detail.moreActions')"
+							>
+								<template #trigger="{toggleOpen, open}">
+									<BaseButton
+										v-tooltip="$t('task.detail.moreActions')"
+										v-cy="'taskDetail.moreActions'"
+										class="toolbar-icon-button"
+										:aria-label="$t('task.detail.moreActions')"
+										:aria-expanded="open"
+										@click="toggleOpen"
+									>
+										<Icon icon="ellipsis-h" />
+									</BaseButton>
+								</template>
+								<template #default="{close}">
+									<div @click="close">
+										<TaskSubscription
+											entity="task"
+											type="dropdown"
+											:entity-id="task.id"
+											:model-value="task.subscription ?? null"
+											@toggle="toggleSubscription"
+										/>
+										<DropdownItem
+											icon="paperclip"
+											@click="openAttachments()"
+										>
+											{{ $t('task.detail.actions.attachments') }}
+										</DropdownItem>
+										<DropdownItem
+											icon="sitemap"
+											@click="setRelatedTasksActive()"
+										>
+											{{ $t('task.detail.actions.relatedTasks') }}
+										</DropdownItem>
+										<DropdownItem
+											v-if="timeTrackingEnabled"
+											v-cy="'taskTrackTimeAction'"
+											:icon="['far', 'clock']"
+											@click="setFieldActive('timeTracking')"
+										>
+											{{ $t('task.detail.actions.timeTracking') }}
+										</DropdownItem>
+										<DropdownItem
+											icon="list"
+											@click="setFieldActive('moveProject')"
+										>
+											{{ $t('task.detail.actions.moveProject') }}
+										</DropdownItem>
+										<DropdownItem
+											icon="copy"
+											@click="duplicateCurrentTask"
+										>
+											{{ $t('task.detail.actions.duplicate') }}
+										</DropdownItem>
+										<hr class="dropdown-divider">
+										<DropdownItem
+											icon="trash-alt"
+											icon-class="has-text-danger"
+											class="has-text-danger"
+											@click="deleteTask()"
+										>
+											{{ $t('task.detail.actions.delete') }}
+										</DropdownItem>
+									</div>
+								</template>
+							</Dropdown>
+						</div>
 
-						<TaskPropertyRow
-							name="color"
-							icon="fill-drip"
-							:label="$t('task.attributes.color')"
-							:is-set="isSet.color"
-							:can-write="canWrite"
-							:remove-label="$t('task.detail.removeColor')"
-							@remove="taskColor = ''; saveTask()"
+						<section
+							v-if="canWrite || hasDetails"
+							class="property-group"
 						>
-							<ColorPicker
-								v-if="canWrite"
-								:ref="e => setFieldRef('color', e)"
-								v-model="taskColor"
-								:resettable="false"
-								@update:modelValue="saveTask()"
-							/>
-							<ColorBubble
-								v-else
-								:color="color"
-							/>
-						</TaskPropertyRow>
-					</dl>
+							<h3 class="property-group-title">
+								{{ $t('task.detail.groups.details') }}
+							</h3>
+							<dl class="property-list">
+								<TaskPropertyRow
+									name="assignees"
+									icon="users"
+									:label="$t('task.attributes.assignees')"
+									:is-set="isSet.assignees"
+									:can-write="canWrite"
+								>
+									<EditAssignees
+										v-if="canWrite"
+										:ref="e => setFieldRef('assignees', e)"
+										v-model="task.assignees"
+										:project-id="task.project_id"
+										:task-id="task.id"
+									/>
+									<AssigneeList
+										v-else
+										:assignees="task.assignees ?? []"
+									/>
+								</TaskPropertyRow>
 
-					<!-- Created / Updated [by] -->
-					<CreatedUpdated :task="task" />
+								<TaskPropertyRow
+									name="labels"
+									icon="tags"
+									:label="$t('task.attributes.labels')"
+									:is-set="isSet.labels"
+									:can-write="canWrite"
+								>
+									<EditLabels
+										:ref="e => setFieldRef('labels', e)"
+										v-model="task.labels"
+										:disabled="!canWrite"
+										:task-id="taskId"
+										:creatable="!authStore.isLinkShareAuth"
+										:creation-disabled-message="authStore.isLinkShareAuth ? $t('task.label.linkShareCannotCreate') : ''"
+									/>
+								</TaskPropertyRow>
+
+								<!-- On the row because FormSelect's fragment root leaves PrioritySelect without an $el. -->
+								<TaskPropertyRow
+									:ref="e => setFieldRef('priority', e)"
+									name="priority"
+									icon="exclamation-circle"
+									:label="$t('task.attributes.priority')"
+									:is-set="isSet.priority"
+									:can-write="canWrite"
+								>
+									<PrioritySelect
+										v-model="task.priority"
+										:disabled="!canWrite"
+										@update:modelValue="setPriority"
+									/>
+								</TaskPropertyRow>
+
+								<TaskPropertyRow
+									name="percent-done"
+									icon="percent"
+									:label="$t('task.attributes.percentDone')"
+									:is-set="isSet.percentDone"
+									:can-write="canWrite"
+								>
+									<PercentDoneSelect
+										v-model="task.percent_done"
+										:disabled="!canWrite"
+										@update:modelValue="setPercentDone"
+									/>
+								</TaskPropertyRow>
+
+								<TaskPropertyRow
+									name="color"
+									icon="fill-drip"
+									:label="$t('task.attributes.color')"
+									:is-set="isSet.color"
+									:can-write="canWrite"
+									:remove-label="$t('task.detail.removeColor')"
+									@remove="taskColor = ''; saveTask()"
+								>
+									<ColorPicker
+										v-if="canWrite"
+										:ref="e => setFieldRef('color', e)"
+										v-model="taskColor"
+										:resettable="false"
+										@update:modelValue="saveTask()"
+									/>
+									<ColorBubble
+										v-else
+										:color="color"
+									/>
+								</TaskPropertyRow>
+							</dl>
+						</section>
+
+						<section
+							v-if="canWrite || hasPlanning"
+							class="property-group"
+						>
+							<h3 class="property-group-title">
+								{{ $t('task.detail.groups.planning') }}
+							</h3>
+							<dl class="property-list">
+								<TaskPropertyRow
+									:class="{'is-overdue': isOverdue}"
+									name="due-date"
+									icon="calendar"
+									:label="$t('task.detail.properties.dueDate')"
+									:is-set="isSet.dueDate"
+									:can-write="canWrite"
+									:remove-label="$t('task.detail.removeDueDate')"
+									@remove="task.due_date = ''; saveTask()"
+								>
+									<Datepicker
+										ref="dueDatePicker"
+										v-model="dueDateInput"
+										aria-labelledby="task-property-due-date-label"
+										:choose-date-label="$t('task.detail.chooseDueDate')"
+										:empty-label="$t('misc.notSet')"
+										:title="$t('task.detail.properties.dueDate')"
+										:disabled="taskBusy || !canWrite"
+										@closeOnChange="saveTask()"
+									/>
+								</TaskPropertyRow>
+
+								<TaskPropertyRow
+									name="start-date"
+									icon="play"
+									:label="$t('task.detail.properties.startDate')"
+									:is-set="isSet.startDate"
+									:can-write="canWrite"
+									:remove-label="$t('task.detail.removeStartDate')"
+									@remove="task.start_date = ''; saveTask()"
+								>
+									<Datepicker
+										v-model="startDateInput"
+										aria-labelledby="task-property-start-date-label"
+										:choose-date-label="$t('task.detail.chooseStartDate')"
+										:empty-label="$t('misc.notSet')"
+										:title="$t('task.detail.properties.startDate')"
+										:disabled="taskBusy || !canWrite"
+										@closeOnChange="saveTask()"
+									/>
+								</TaskPropertyRow>
+
+								<TaskPropertyRow
+									name="end-date"
+									icon="stop"
+									:label="$t('task.detail.properties.endDate')"
+									:is-set="isSet.endDate"
+									:can-write="canWrite"
+									:remove-label="$t('task.detail.removeEndDate')"
+									@remove="task.end_date = ''; saveTask()"
+								>
+									<Datepicker
+										v-model="endDateInput"
+										aria-labelledby="task-property-end-date-label"
+										:choose-date-label="$t('task.detail.chooseEndDate')"
+										:empty-label="$t('misc.notSet')"
+										:title="$t('task.detail.properties.endDate')"
+										:disabled="taskBusy || !canWrite"
+										@closeOnChange="saveTask()"
+									/>
+								</TaskPropertyRow>
+
+								<TaskPropertyRow
+									name="reminders"
+									:icon="['far', 'clock']"
+									:label="$t('task.attributes.reminders')"
+									:is-set="isSet.reminders"
+									:can-write="canWrite"
+								>
+									<Reminders
+										:ref="e => setFieldRef('reminders', e)"
+										v-model="task.reminders"
+										:default-relative-to="remindersDefaultRelativeTo"
+										:disabled="!canWrite"
+										@update:modelValue="saveTask()"
+									/>
+								</TaskPropertyRow>
+
+								<TaskPropertyRow
+									name="repeat"
+									icon="history"
+									:label="$t('task.attributes.repeat')"
+									:is-set="isSet.repeatAfter"
+									:can-write="canWrite"
+									:remove-label="$t('task.detail.removeRepeat')"
+									:class="{'is-expanded': repeatEditorOpen}"
+									@remove="removeRepeatAfter"
+								>
+									<BaseButton
+										id="task-property-repeat-value"
+										aria-labelledby="task-property-repeat-label task-property-repeat-value"
+										class="property-value-button"
+										:class="{'property-empty': !isSet.repeatAfter}"
+										:disabled="!canWrite"
+										:aria-expanded="canWrite ? repeatEditorOpen : undefined"
+										@click="repeatEditorOpen = !repeatEditorOpen"
+									>
+										{{ repeatSummary }}
+										<Icon
+											v-if="canWrite"
+											icon="chevron-down"
+											class="chevron"
+										/>
+									</BaseButton>
+									<template #editor>
+										<div
+											v-if="repeatEditorOpen && canWrite"
+											class="property-editor"
+										>
+											<RepeatAfter
+												:model-value="task"
+												@update:modelValue="saveTask($event)"
+											/>
+										</div>
+									</template>
+								</TaskPropertyRow>
+							</dl>
+						</section>
+
+						<!-- Created / Updated [by] -->
+						<CreatedUpdated :task="task" />
+					</div>
 				</aside>
 			</div>
 		</div>
@@ -916,7 +936,12 @@ const isSet = computed(() => ({
 		|| task.value.repeat_mode !== TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT,
 	color: Boolean(color.value),
 }))
-const hasAnyProperty = computed(() => Object.values(isSet.value).some(Boolean))
+const hasDetails = computed(() => isSet.value.assignees || isSet.value.labels || isSet.value.priority || isSet.value.percentDone || isSet.value.color)
+const hasPlanning = computed(() => isSet.value.dueDate || isSet.value.startDate || isSet.value.endDate || isSet.value.reminders || isSet.value.repeatAfter)
+const isOverdue = computed(() => {
+	const due = parseDateOrNull(task.value.due_date)
+	return !task.value.done && due !== null && due.getTime() < Date.now()
+})
 
 // Optional sections are only shown once used; list the ones still hidden as one-click shortcuts.
 const quickAddItems = computed(() => {
@@ -1359,6 +1384,50 @@ h2 .button {
 
 	.select:not(.has-defaults):hover:after {
 		opacity: 1;
+	}
+}
+
+// Cards give the page visible structure: content on the left, properties on the right.
+.content-card,
+.sidebar-card {
+	background: var(--white);
+	border: 1px solid var(--card-border-color);
+	border-radius: calc(#{$radius} * 1.5);
+	box-shadow: var(--shadow-sm);
+	padding: 1rem 1.25rem;
+	margin-block-end: 1rem;
+}
+
+.sidebar-card {
+	padding: 1rem;
+}
+
+.comments-card {
+	margin-block-end: 0;
+}
+
+.property-group + .property-group {
+	margin-block-start: 1.25rem;
+}
+
+.property-group-title {
+	margin-block-end: .25rem;
+	font-size: .75rem;
+	font-weight: 700;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	color: var(--grey-500);
+}
+
+// Overdue due dates must not be missed.
+.property-due-date.is-overdue {
+	:deep(dt),
+	> dd .datepicker :deep(.show) {
+		color: var(--danger-text);
+	}
+
+	> dd .datepicker :deep(.show) {
+		font-weight: 600;
 	}
 }
 
