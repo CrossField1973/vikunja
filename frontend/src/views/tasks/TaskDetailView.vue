@@ -104,6 +104,22 @@
 						:disabled="!canWrite"
 					/>
 
+					<!-- Quick add: surfaces the optional sections that otherwise hide in the actions menu -->
+					<div
+						v-if="canWrite && quickAddItems.length > 0"
+						class="quick-add d-print-none"
+					>
+						<BaseButton
+							v-for="item in quickAddItems"
+							:key="item.key"
+							class="quick-add-button"
+							@click="item.run()"
+						>
+							<Icon :icon="item.icon" />
+							{{ item.label }}
+						</BaseButton>
+					</div>
+
 					<!-- Attachments -->
 					<div
 						v-show="activeSections.attachments || hasAttachments"
@@ -514,6 +530,7 @@ import {useRouter, useRoute, type RouteLocation, onBeforeRouteLeave} from 'vue-r
 import {useI18n} from 'vue-i18n'
 import {unrefElement, useDebounceFn, useElementSize, useIntersectionObserver, useMutationObserver} from '@vueuse/core'
 import {klona} from 'klona/lite'
+import type {IconProp} from '@fortawesome/fontawesome-svg-core'
 
 import {useTask} from '@/composables/useTask'
 import {getHexColor} from '@/helpers/task'
@@ -900,6 +917,24 @@ const isSet = computed(() => ({
 	color: Boolean(color.value),
 }))
 const hasAnyProperty = computed(() => Object.values(isSet.value).some(Boolean))
+
+// Optional sections are only shown once used; list the ones still hidden as one-click shortcuts.
+const quickAddItems = computed(() => {
+	const items: {key: string, icon: IconProp, label: string, run: () => void}[] = []
+	if (!activeSections.attachments && !hasAttachments.value) {
+		items.push({key: 'attachments', icon: 'paperclip', label: t('task.detail.actions.attachments'), run: openAttachments})
+	}
+	if (!activeSections.relatedTasks) {
+		items.push({key: 'relatedTasks', icon: 'sitemap', label: t('task.detail.actions.relatedTasks'), run: setRelatedTasksActive})
+	}
+	if (timeTrackingEnabled.value && !activeSections.timeTracking) {
+		items.push({key: 'timeTracking', icon: ['far', 'clock'], label: t('task.detail.actions.timeTracking'), run: () => setFieldActive('timeTracking')})
+	}
+	if (!activeSections.moveProject) {
+		items.push({key: 'moveProject', icon: 'list', label: t('task.detail.actions.moveProject'), run: () => setFieldActive('moveProject')})
+	}
+	return items
+})
 
 const favoriteLabel = computed(() => task.value.is_favorite
 	? t('task.detail.actions.unfavorite')
@@ -1324,6 +1359,32 @@ h2 .button {
 
 	.select:not(.has-defaults):hover:after {
 		opacity: 1;
+	}
+}
+
+.quick-add {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .5rem;
+	margin-block-end: 1rem;
+}
+
+.quick-add-button {
+	display: inline-flex;
+	align-items: center;
+	gap: .375rem;
+	padding: .25rem .75rem;
+	border: 1px dashed var(--grey-300);
+	border-radius: 999px;
+	font-size: .875rem;
+	color: var(--grey-600);
+	transition: color $transition, border-color $transition, background-color $transition;
+
+	&:hover,
+	&:focus-visible {
+		color: var(--text);
+		border-color: var(--grey-400);
+		background: var(--scheme-main);
 	}
 }
 
